@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Markov Weather Simulator</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #e8f1ff, #f8fbff);
+      color: #1f2937;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+    }
+    .container {
+      width: 100%;
+      max-width: 900px;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 12px 35px rgba(0,0,0,0.12);
+      padding: 28px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 2rem;
+    }
+    p.subtitle {
+      margin: 0 0 24px;
+      color: #4b5563;
+      line-height: 1.5;
+    }
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .card {
+      background: #f9fbff;
+      border: 1px solid #dbe7ff;
+      border-radius: 16px;
+      padding: 16px;
+    }
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    select, input {
+      width: 100%;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid #cbd5e1;
+      font-size: 1rem;
+    }
+    button {
+      margin-top: 8px;
+      border: none;
+      background: #2563eb;
+      color: white;
+      padding: 14px 18px;
+      border-radius: 14px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      width: 100%;
+      transition: transform 0.15s ease, background 0.15s ease;
+    }
+    button:hover {
+      background: #1d4ed8;
+      transform: translateY(-1px);
+    }
+    .results {
+      display: grid;
+      grid-template-columns: 1.3fr 0.9fr;
+      gap: 20px;
+      margin-top: 24px;
+    }
+    @media (max-width: 760px) {
+      .results { grid-template-columns: 1fr; }
+    }
+    .forecast-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .forecast-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 12px 14px;
+    }
+    .weather-label {
+      font-weight: 700;
+    }
+    .summary-grid {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .summary-item {
+      display: flex;
+      justify-content: space-between;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 12px 14px;
+    }
+    .note {
+      margin-top: 20px;
+      font-size: 0.95rem;
+      color: #475569;
+      background: #eff6ff;
+      border-left: 4px solid #2563eb;
+      padding: 12px 14px;
+      border-radius: 10px;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Markov Weather Simulator</h1>
+    <p class="subtitle">
+      This web app simulates how weather changes over time using a Markov model, where tomorrow's weather depends only on today's weather.
+    </p>
+
+    <div class="controls">
+      <div class="card">
+        <label for="startWeather">Starting Weather</label>
+        <select id="startWeather">
+          <option>Sunny</option>
+          <option>Cloudy</option>
+          <option>Rainy</option>
+          <option>Foggy</option>
+          <option>Stormy</option>
+          <option>Snowy</option>
+        </select>
+      </div>
+
+      <div class="card">
+        <label for="days">Number of Days</label>
+        <input id="days" type="number" min="1" max="60" value="10" />
+      </div>
+
+      <div class="card">
+        <label>&nbsp;</label>
+        <button id="simulateBtn">Run Simulation</button>
+      </div>
+    </div>
+
+    <div class="results">
+      <div class="card">
+        <h2>Forecast</h2>
+        <div id="forecast" class="forecast-list"></div>
+      </div>
+
+      <div class="card">
+        <h2>Summary</h2>
+        <div id="summary" class="summary-grid"></div>
+      </div>
+    </div>
+
+    <div class="note">
+      Each run may be different because the next weather state is chosen using probabilities from the current state.
+    </div>
+  </div>
+
+  <script>
+    const states = ["Sunny", "Cloudy", "Rainy", "Foggy", "Stormy", "Snowy"];
+
+    const icons = {
+      Sunny: "☀️",
+      Cloudy: "☁️",
+      Rainy: "🌧️",
+      Foggy: "🌫️",
+      Stormy: "⛈️",
+      Snowy: "❄️"
+    };
+
+    const transitions = {
+      Sunny: {
+        Sunny: 0.4, Cloudy: 0.2, Rainy: 0.1,
+        Foggy: 0.1, Stormy: 0.1, Snowy: 0.1
+      },
+      Cloudy: {
+        Sunny: 0.2, Cloudy: 0.3, Rainy: 0.2,
+        Foggy: 0.1, Stormy: 0.1, Snowy: 0.1
+      },
+      Rainy: {
+        Sunny: 0.2, Cloudy: 0.2, Rainy: 0.3,
+        Foggy: 0.1, Stormy: 0.1, Snowy: 0.1
+      },
+      Foggy: {
+        Sunny: 0.2, Cloudy: 0.3, Rainy: 0.2,
+        Foggy: 0.2, Stormy: 0.05, Snowy: 0.05
+      },
+      Stormy: {
+        Sunny: 0.3, Cloudy: 0.2, Rainy: 0.2,
+        Foggy: 0.1, Stormy: 0.1, Snowy: 0.1
+      },
+      Snowy: {
+        Sunny: 0.2, Cloudy: 0.2, Rainy: 0.1,
+        Foggy: 0.1, Stormy: 0.1, Snowy: 0.3
+      }
+    };
+
+    function weightedChoice(probabilities) {
+      const rand = Math.random();
+      let cumulative = 0;
+
+      for (const [state, probability] of Object.entries(probabilities)) {
+        cumulative += probability;
+        if (rand <= cumulative) {
+          return state;
+        }
+      }
+
+      return Object.keys(probabilities)[Object.keys(probabilities).length - 1];
+    }
+
+    function simulateWeather(startWeather, days) {
+      const forecast = [startWeather];
+      let currentWeather = startWeather;
+
+      for (let i = 1; i < days; i++) {
+        currentWeather = weightedChoice(transitions[currentWeather]);
+        forecast.push(currentWeather);
+      }
+
+      return forecast;
+    }
+
+    function renderForecast(forecast) {
+      const forecastContainer = document.getElementById("forecast");
+      forecastContainer.innerHTML = "";
+
+      forecast.forEach((weather, index) => {
+        const item = document.createElement("div");
+        item.className = "forecast-item";
+        item.innerHTML = `
+          <span>Day ${index + 1}</span>
+          <span class="weather-label">${icons[weather]} ${weather}</span>
+        `;
+        forecastContainer.appendChild(item);
+      });
+    }
+
+    function renderSummary(forecast) {
+      const counts = {};
+      states.forEach(state => counts[state] = 0);
+      forecast.forEach(weather => counts[weather]++);
+
+      const summaryContainer = document.getElementById("summary");
+      summaryContainer.innerHTML = "";
+
+      states.forEach(state => {
+        const item = document.createElement("div");
+        item.className = "summary-item";
+        item.innerHTML = `
+          <span>${icons[state]} ${state}</span>
+          <span>${counts[state]} day(s)</span>
+        `;
+        summaryContainer.appendChild(item);
+      });
+    }
+
+    function runSimulation() {
+      const startWeather = document.getElementById("startWeather").value;
+      const daysInput = document.getElementById("days").value;
+      const days = Number(daysInput);
+
+      if (!Number.isInteger(days) || days < 1) {
+        alert("Please enter a valid positive whole number of days.");
+        return;
+      }
+
+      const forecast = simulateWeather(startWeather, days);
+      renderForecast(forecast);
+      renderSummary(forecast);
+    }
+
+    document.getElementById("simulateBtn").addEventListener("click", runSimulation);
+
+    // Initial run
+    runSimulation();
+  </script>
+</body>
+</html>
