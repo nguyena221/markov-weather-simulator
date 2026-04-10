@@ -32,3 +32,14 @@ def get_next_weather(current_weather):
     prob = list(transition_poss[current_weather].values())
     choice = random.choices(next_states, weights=prob, k=1)[0]
     return choice
+
+# Simulate weather for next couple of days (given)
+def simulate_weather(start_weather, days):
+    forecast = [start_weather]
+    curr_we = start_weather
+
+    for i in range(days - 1):
+        curr_we = get_next_weather(curr_we)
+        forecast.append(curr_we)
+
+    return forecast
