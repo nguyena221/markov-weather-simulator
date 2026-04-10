@@ -43,3 +43,30 @@ def simulate_weather(start_weather, days):
         forecast.append(curr_we)
 
     return forecast
+
+# Print the weather forecast 
+def print_forecast(forecast):
+    print("\nWeather Simulation")
+    print("-" * 30)
+    for i, weather in enumerate(forecast, start=1):
+        print(f"Day {i}: {weather}")
+
+    counts = Counter(forecast)
+    print("\nSummary")
+    print("-" * 30)
+    for state in states:
+        print(f"{state}: {counts[state]} day(s)")
+
+def main():
+    print("Markov Weather Simulator")
+    print("=" * 30)
+
+    start_weather = get_valid_start_weather()
+    days = get_valid_days()
+
+    forecast = simulate_weather(start_weather, days)
+    print_forecast(forecast)
+
+
+if __name__ == "__main__":
+    main()
