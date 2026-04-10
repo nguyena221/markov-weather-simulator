@@ -59,10 +59,23 @@ def print_forecast(forecast):
 
 def main():
     print("Markov Weather Simulator")
-    print("=" * 30)
 
-    start_weather = get_valid_start_weather()
-    days = get_valid_days()
+    # Get starting weather
+    while True:
+        start_weather = input("Enter starting weather: ").strip().title()
+        if start_weather in states:
+            break
+        print("Invalid input.")
+
+    # Get number of days
+    while True:
+        try:
+            days = int(input("Enter number of days: "))
+            if days > 0:
+                break
+            print("Must be positive.")
+        except ValueError:
+            print("Invalid number.")
 
     forecast = simulate_weather(start_weather, days)
     print_forecast(forecast)
